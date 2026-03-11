@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white 
+           bg-primary-600 rounded-lg shadow-lg hover:bg-primary-700 
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 
+           transition-all duration-200 ease-in-out transform hover:scale-105;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 text-base font-semibold 
+           text-primary-600 bg-white border-2 border-primary-600 rounded-lg 
+           hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 
+           focus:ring-offset-2 transition-all duration-200 ease-in-out;
+  }
+
+  .btn-success {
+    @apply inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white 
+           bg-secondary-600 rounded-lg shadow-lg hover:bg-secondary-700 
+           focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2 
+           transition-all duration-200 ease-in-out transform hover:scale-105;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-xl p-6 border border-gray-100;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 text-gray-700 bg-gray-50 border border-gray-300 rounded-lg 
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent 
+           transition-all duration-200 placeholder:text-gray-400;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-2;
+  }
+
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold text-gray-900;
+  }
+
+  .section-subtitle {
+    @apply text-lg md:text-xl text-gray-600 mt-4;
+  }
+}
+
+@layer utilities {
+  .gradient-hero {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-500;
+  }
+
+  .glass-effect {
+    @apply bg-white/80 backdrop-blur-lg;
+  }
+}
