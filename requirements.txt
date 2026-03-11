@@ -1,0 +1,5 @@
+pdfplumber==0.10.3
+pyyaml==6.0.1
+pandas==2.1.0
+jupyter==1.0.0
+ipython==8.15.0
