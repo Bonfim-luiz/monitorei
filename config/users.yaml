@@ -1,0 +1,12 @@
+# Monitored Users Configuration
+
+monitored_users:
+  - username: user1
+    status: active
+    monitoring_since: "2026-01-01 00:00:00"
+  - username: user2
+    status: inactive
+    monitoring_since: "2026-01-05 00:00:00"
+  - username: user3
+    status: active
+    monitoring_since: "2026-01-10 00:00:00"
