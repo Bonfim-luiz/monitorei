@@ -25,6 +25,7 @@ const allowlist = [
   "multer",
   "nanoid",
   "nodemailer",
+  "pdf-parse",
   "openai",
   "passport",
   "passport-local",

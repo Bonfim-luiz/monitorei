@@ -2,9 +2,10 @@ import { Router, type IRouter } from "express";
 import multer from "multer";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse") as (buffer: Buffer) => Promise<{ numpages: number; text: string }>;
-import { GetPdfStatusResponse, UploadPdfResponse } from "@workspace/api-zod";
+type PdfData = { numpages: number; text: string };
+const pdfParse = require("pdf-parse") as (buffer: Buffer) => Promise<PdfData>;
 import { setPdfState, getPdfState, ensureDataDir, DATA_DIR } from "../lib/pdfStore.js";
+import fs from "fs";
 
 const router: IRouter = Router();
 
@@ -14,8 +15,7 @@ const storage = multer.diskStorage({
     ensureDataDir();
     cb(null, DATA_DIR);
   },
-  filename: (_req, file, cb) => {
-    // Use a fixed filename so it's easy to reference
+  filename: (_req, _file, cb) => {
     cb(null, "diario.pdf");
   },
 });
@@ -29,7 +29,7 @@ const upload = multer({
       cb(new Error("Apenas arquivos PDF são aceitos."));
     }
   },
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
 });
 
 // Upload a Diário Oficial PDF
@@ -40,23 +40,20 @@ router.post("/pdf/upload", upload.single("pdf"), async (req, res) => {
   }
 
   try {
-    // Parse the PDF to count pages and validate it
-    const { default: fs } = await import("fs");
     const buffer = fs.readFileSync(req.file.path);
     const data = await pdfParse(buffer);
 
     setPdfState(req.file.originalname, req.file.path, data.numpages);
 
-    const response = UploadPdfResponse.parse({
+    res.json({
       success: true,
       filename: req.file.originalname,
       pageCount: data.numpages,
       message: `PDF carregado com sucesso. ${data.numpages} página(s) encontrada(s).`,
     });
-
-    res.json(response);
   } catch (err) {
-    console.error("Error processing PDF:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Error processing PDF:", msg);
     res.status(500).json({ error: "Erro ao processar o arquivo PDF." });
   }
 });
@@ -64,15 +61,12 @@ router.post("/pdf/upload", upload.single("pdf"), async (req, res) => {
 // Get current PDF status
 router.get("/pdf/status", (_req, res) => {
   const state = getPdfState();
-
-  const response = GetPdfStatusResponse.parse({
+  res.json({
     hasFile: state.filename !== null,
-    filename: state.filename,
+    filename: state.filename ?? null,
     uploadedAt: state.uploadedAt?.toISOString() ?? null,
-    pageCount: state.pageCount,
+    pageCount: state.pageCount ?? null,
   });
-
-  res.json(response);
 });
 
 export default router;
