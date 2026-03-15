@@ -1,0 +1,220 @@
+[10:57, 15/03/2026] Luiz: You are helping me create a minimal MVP repository for a Python project that monitors Brazilian Diário Oficial PDFs and checks if specific monitored names appear in convocação lists.
+
+Your task is to create the FULL repository structure and all files.
+
+Goal of the MVP:
+- Load a list of monitored people from a YAML file
+- Read a PDF file (Diário Oficial)
+- Extract all text from the PDF
+- Check if any monitored names appear in the text
+- Print the results in the terminal
+
+If a monitored name appears → show it in the output.
+If no monitored names appear → print a message saying no monitored users were found.
+
+IMPORTANT:
+Do NOT ask permission for each file. Create everything in one go.
+
+Repository structure:
+
+diario-monitor/
+  input/
+    monitorados.yaml
+  data/
+    …
+[11:12, 15/03/2026] Luiz: You are an expert Python engineer.
+
+Create a minimal but functional MVP for a service that monitors Brazilian Diário Oficial PDFs and notifies users by email if their name appears in a convocação.
+
+The system has three responsibilities:
+
+1) Web interface where users register:
+- full name
+- email
+- concurso (optional)
+
+2) Internal daily processing:
+- The team manually uploads a Diário Oficial PDF into a backend folder
+- The system reads the PDF
+- Extracts all text
+- Checks if any registered user's name appears
+
+3) Notification:
+- Once per day the system sends an email to each user
+- Email says whether their name appeared or not
+
+IMPORTANT:
+The user does NOT upload PDFs.
+PDFs are manually placed by the internal team in a folder.
+
+Use Python.
+
+Use Streamlit for the inte…
+[11:34, 15/03/2026] Luiz: Update the existing project. Do NOT recreate the repository. Only modify the current Streamlit interface and small backend logic.
+
+The product name must be changed to:
+
+Monitorei
+
+It is a service that monitors Diário Oficial publications for people who took public exams in the city of Guarujá.
+
+The goal is to adjust the UI and the user flow.
+
+IMPORTANT:
+This is still an MVP, so keep everything simple.
+
+--------------------------------
+PAGE STRUCTURE
+--------------------------------
+
+The app should have TWO tabs:
+
+1) "Monitorei"
+2) "Administração"
+
+--------------------------------
+TAB 1 — USER PAGE (MARKETING + SIGNUP)
+--------------------------------
+
+This page must behave like a landing page.
+
+Remove the "recent registrations" section.
+
+The page should contain:
+
+TITLE
+"Monitorei"
+
+SUBTITLE
+"Receba um alerta quando seu nome aparecer no Diário Oficial."
+
+DESCRIPTION (short marketing copy)
+
+Explain the problem:
+
+Many people pass public exams but lose their convocação because they don't monitor the Diário Oficial daily.
+
+Explain the solution:
+
+Monitorei checks the Diário Oficial for you and sends an email when your name appears.
+
+PRICE SECTION
+
+Display clearly:
+
+R$19,99 por ano
+
+Explain:
+
+"Monitoramos seu nome diariamente e enviamos um alerta caso você seja convocado."
+
+Below this, show the signup form.
+
+SIGNUP FORM fields:
+
+- Nome completo
+- Email
+- Frequência de notificação
+
+Frequency options:
+
+- Diário
+- Mensal
+
+BUTTON:
+
+"Começar monitoramento"
+
+When the user submits:
+
+Save into users.yaml with fields:
+
+nome
+email
+frequencia
+status = active
+created_at = current timestamp
+
+Show success message:
+
+"Cadastro realizado! Em breve você receberá notificações."
+
+IMPORTANT:
+There is NO payment system yet. Just simulate the flow.
+
+--------------------------------
+TAB 2 — ADMIN PAGE
+--------------------------------
+
+This page is internal (for now visible to everyone).
+
+Sections needed:
+
+SECTION 1 — Upload de PDF
+
+Allow uploading a PDF file.
+
+Save the file into:
+
+data/diario.pdf
+
+Add button:
+
+"Verificar nomes"
+
+When clicked:
+
+Run the name matching process using the existing extractor and matcher logic.
+
+Display:
+
+List of users whose names were FOUND.
+
+If none were found show:
+
+"Nenhum usuário encontrado no documento."
+
+--------------------------------
+
+SECTION 2 — Usuários Monitorados
+
+Display a table with all users from users.yaml.
+
+Columns:
+
+Nome
+Email
+Frequência
+Status
+Data de cadastro
+
+--------------------------------
+DESIGN GUIDELINES
+--------------------------------
+
+Keep the interface simple and clean.
+
+Marketing page should look like a basic SaaS landing page:
+
+Title
+Problem
+Solution
+Price
+Signup form
+
+Admin page can remain simple.
+
+--------------------------------
+IMPORTANT
+--------------------------------
+
+Do NOT change the existing PDF parsing or email logic.
+
+Only adjust:
+
+- UI
+- user fields
+- admin visibility
+- YAML structure
+
+Ensure compatibility with the existing project structure.

@@ -49,8 +49,8 @@
 }
 
 :root {
-  /* Clean Government Service Palette - Blues and Whites */
-  --background: 210 40% 98%; /* Very light blue-gray */
+  /* Clean Government Service Palette - Trustworthy Blues */
+  --background: 210 40% 98%; /* Soft cool grey/blue */
   --foreground: 222 47% 11%;
   
   --card: 0 0% 100%;
@@ -61,36 +61,30 @@
   --popover-foreground: 222 47% 11%;
   --popover-border: 214 32% 91%;
 
-  /* Official Blue */
-  --primary: 212 100% 28%; 
+  /* Trustworthy deep blue */
+  --primary: 221 83% 40%;
   --primary-foreground: 210 40% 98%;
 
-  --secondary: 210 40% 96.1%;
+  --secondary: 214 32% 91%;
   --secondary-foreground: 222 47% 11%;
 
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted: 214 32% 95%;
+  --muted-foreground: 215 16% 47%;
 
-  --accent: 212 100% 28%;
+  --accent: 221 83% 40%;
   --accent-foreground: 210 40% 98%;
 
-  --success: 142 71% 35%;
+  --success: 142 76% 36%;
   --success-foreground: 210 40% 98%;
 
-  --destructive: 0 84.2% 60.2%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 210 40% 98%;
 
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 212 100% 28%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 221 83% 40%;
 
   --radius: 0.75rem;
-
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
 .dark {
@@ -105,14 +99,14 @@
   --popover-foreground: 210 40% 98%;
   --popover-border: 217 32% 17%;
 
-  --primary: 210 40% 98%;
+  --primary: 217 91% 60%;
   --primary-foreground: 222 47% 11%;
 
   --secondary: 217 32% 17%;
   --secondary-foreground: 210 40% 98%;
 
   --muted: 217 32% 17%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --muted-foreground: 215 20% 65%;
 
   --accent: 217 32% 17%;
   --accent-foreground: 210 40% 98%;
@@ -120,12 +114,12 @@
   --success: 142 71% 45%;
   --success-foreground: 210 40% 98%;
 
-  --destructive: 0 62.8% 30.6%;
+  --destructive: 0 63% 31%;
   --destructive-foreground: 210 40% 98%;
 
   --border: 217 32% 17%;
   --input: 217 32% 17%;
-  --ring: 212.7 26.8% 83.9%;
+  --ring: 224 76% 48%;
 }
 
 @layer base {
@@ -138,12 +132,4 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
   }
-}
-
-/* Glassmorphism utilities */
-.glass-panel {
-  @apply bg-white/70 backdrop-blur-xl border border-white/50 shadow-xl shadow-black/5;
-}
-.dark .glass-panel {
-  @apply bg-black/40 border-white/10;
 }

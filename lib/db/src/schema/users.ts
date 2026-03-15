@@ -6,7 +6,8 @@ export const usersTable = pgTable("monitored_users", {
   id: serial("id").primaryKey(),
   nome: text("nome").notNull(),
   email: text("email").notNull().unique(),
-  concurso: text("concurso"),
+  frequencia: text("frequencia").notNull().default("diario"),
+  status: text("status").notNull().default("ativo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -1,12 +1,13 @@
 import { useState, useCallback } from "react";
-import { motion } from "framer-motion";
 import { useDropzone } from "react-dropzone";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useUploadPdf, 
   useGetPdfStatus, 
   useGetResults, 
-  useSendNotifications 
+  useSendNotifications,
+  useListUsers,
+  useDeleteUser
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -14,7 +15,7 @@ import { ptBR } from "date-fns/locale";
 import { 
   UploadCloud, FileText, CheckCircle2, 
   Search, Mail, AlertCircle, Loader2,
-  FileCheck, ShieldAlert
+  FileCheck, ShieldAlert, Users, Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ export default function Admin() {
   // Queries
   const { data: pdfStatus, isLoading: isLoadingStatus } = useGetPdfStatus();
   const { data: resultsData, isLoading: isLoadingResults, refetch: refetchResults } = useGetResults();
+  const { data: usersData, isLoading: isLoadingUsers } = useListUsers();
 
   // Mutations
   const uploadMutation = useUploadPdf({
@@ -66,6 +68,18 @@ export default function Admin() {
     }
   });
 
+  const deleteUserMutation = useDeleteUser({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+        toast({ title: "Usuário removido com sucesso." });
+      },
+      onError: () => {
+        toast({ title: "Erro ao remover usuário", variant: "destructive" });
+      }
+    }
+  });
+
   // Dropzone setup
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -96,49 +110,49 @@ export default function Admin() {
   };
 
   return (
-    <div className="flex-1 w-full bg-background/50">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-display font-bold text-foreground">Painel de Administração</h1>
-            <p className="text-muted-foreground mt-1">Gerencie publicações e verifique convocações</p>
-          </div>
+    <div className="flex-1 w-full bg-muted/30">
+      <div className="container mx-auto px-4 py-10 max-w-7xl">
+        <div className="mb-10">
+          <h1 className="text-3xl md:text-4xl font-display font-extrabold text-foreground tracking-tight">Painel de Administração</h1>
+          <p className="text-muted-foreground mt-2 font-medium text-lg">Gerencie publicações, convocações e usuários monitorados</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
           {/* Upload Card */}
           <div className="lg:col-span-2">
-            <div className="bg-card rounded-2xl shadow-sm border border-border p-6 h-full flex flex-col">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <UploadCloud className="w-5 h-5 text-primary" />
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-8 h-full flex flex-col">
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-xl text-primary">
+                  <UploadCloud className="w-5 h-5" />
+                </div>
                 Upload do Diário Oficial
               </h2>
               
               <div 
                 {...getRootProps()} 
                 className={cn(
-                  "flex-1 min-h-[200px] border-2 border-dashed rounded-xl flex flex-col items-center justify-center p-8 text-center transition-all cursor-pointer",
-                  isDragActive ? "border-primary bg-primary/5 scale-[0.99]" : "border-border hover:border-primary/50 hover:bg-muted/30",
+                  "flex-1 min-h-[220px] border-2 border-dashed rounded-xl flex flex-col items-center justify-center p-8 text-center transition-all cursor-pointer",
+                  isDragActive ? "border-primary bg-primary/5 scale-[0.99]" : "border-border hover:border-primary/50 hover:bg-muted/50",
                   uploadMutation.isPending && "opacity-50 cursor-wait pointer-events-none"
                 )}
               >
                 <input {...getInputProps()} />
                 {uploadMutation.isPending ? (
                   <div className="flex flex-col items-center">
-                    <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-                    <p className="font-medium text-foreground">Processando PDF...</p>
-                    <p className="text-sm text-muted-foreground mt-1">Isso pode levar alguns segundos dependendo do tamanho.</p>
+                    <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                    <p className="font-bold text-foreground text-lg">Processando PDF...</p>
+                    <p className="text-sm font-medium text-muted-foreground mt-1">Isso pode levar alguns segundos dependendo do tamanho.</p>
                   </div>
                 ) : (
                   <>
-                    <div className="w-14 h-14 bg-secondary rounded-full flex items-center justify-center mb-4 text-muted-foreground">
-                      <FileText className="w-7 h-7" />
+                    <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-5 text-muted-foreground shadow-sm">
+                      <FileText className="w-8 h-8" />
                     </div>
-                    <p className="font-semibold text-foreground text-lg mb-1">
+                    <p className="font-bold text-foreground text-lg mb-2">
                       {isDragActive ? "Solte o PDF aqui..." : "Arraste e solte o PDF do Diário"}
                     </p>
-                    <p className="text-sm text-muted-foreground mb-4">ou clique para selecionar do seu computador</p>
-                    <span className="px-4 py-1.5 bg-background border border-border rounded-full text-xs font-medium">
+                    <p className="text-sm font-medium text-muted-foreground mb-5">ou clique para selecionar do seu computador</p>
+                    <span className="px-4 py-1.5 bg-background border border-border shadow-sm rounded-full text-xs font-bold tracking-wide">
                       Apenas .PDF
                     </span>
                   </>
@@ -149,46 +163,48 @@ export default function Admin() {
 
           {/* Status Card */}
           <div>
-            <div className="bg-card rounded-2xl shadow-sm border border-border p-6 h-full">
-              <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-primary" />
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-8 h-full">
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-xl text-primary">
+                  <FileCheck className="w-5 h-5" />
+                </div>
                 Status do Documento
               </h2>
               
               {isLoadingStatus ? (
-                <div className="flex items-center justify-center h-32">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <div className="flex items-center justify-center h-40">
+                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                 </div>
               ) : pdfStatus?.hasFile ? (
-                <div className="space-y-5">
-                  <div className="bg-success/10 border border-success/20 rounded-xl p-4 flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                <div className="space-y-6">
+                  <div className="bg-success/10 border border-success/20 rounded-xl p-5 flex items-start gap-4">
+                    <CheckCircle2 className="w-6 h-6 text-success shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-success-foreground text-sm">PDF Ativo</p>
-                      <p className="text-xs text-success-foreground/80 mt-1 line-clamp-2" title={pdfStatus.filename || ""}>
+                      <p className="font-bold text-success-foreground">PDF Ativo</p>
+                      <p className="text-sm font-medium text-success-foreground/80 mt-1 line-clamp-2" title={pdfStatus.filename || ""}>
                         {pdfStatus.filename}
                       </p>
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-muted/50 p-3 rounded-lg border border-border/50">
-                      <p className="text-xs text-muted-foreground mb-1">Páginas</p>
-                      <p className="font-bold text-foreground text-xl">{pdfStatus.pageCount}</p>
+                    <div className="bg-muted p-5 rounded-xl border border-border">
+                      <p className="text-xs font-bold text-muted-foreground mb-1 uppercase tracking-wider">Páginas</p>
+                      <p className="font-display font-extrabold text-foreground text-3xl">{pdfStatus.pageCount}</p>
                     </div>
-                    <div className="bg-muted/50 p-3 rounded-lg border border-border/50">
-                      <p className="text-xs text-muted-foreground mb-1">Data</p>
-                      <p className="font-bold text-foreground text-sm mt-1">
-                        {pdfStatus.uploadedAt ? format(new Date(pdfStatus.uploadedAt), "dd/MM/yy", { locale: ptBR }) : "--"}
+                    <div className="bg-muted p-5 rounded-xl border border-border">
+                      <p className="text-xs font-bold text-muted-foreground mb-1 uppercase tracking-wider">Data</p>
+                      <p className="font-display font-extrabold text-foreground text-xl mt-1">
+                        {pdfStatus.uploadedAt ? format(new Date(pdfStatus.uploadedAt), "dd/MM", { locale: ptBR }) : "--"}
                       </p>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-40 text-center px-4">
-                  <ShieldAlert className="w-10 h-10 text-muted-foreground mb-3 opacity-20" />
-                  <p className="text-sm font-medium text-foreground">Nenhum PDF na base</p>
-                  <p className="text-xs text-muted-foreground mt-1">Faça o upload de um diário oficial para começar.</p>
+                <div className="flex flex-col items-center justify-center h-[200px] text-center px-4 bg-muted/50 rounded-xl border border-dashed border-border">
+                  <ShieldAlert className="w-12 h-12 text-muted-foreground mb-4 opacity-30" />
+                  <p className="font-bold text-foreground">Nenhum PDF na base</p>
+                  <p className="text-sm font-medium text-muted-foreground mt-2">Faça o upload para começar.</p>
                 </div>
               )}
             </div>
@@ -196,86 +212,93 @@ export default function Admin() {
         </div>
 
         {/* Action Bar */}
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-4 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 p-2 rounded-lg">
-              <Search className="w-5 h-5 text-primary" />
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-10 flex flex-col sm:flex-row gap-6 justify-between items-center">
+          <div className="flex items-center gap-4">
+            <div className="bg-primary/10 p-4 rounded-xl">
+              <Search className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold">Varredura de Nomes</h3>
-              <p className="text-xs text-muted-foreground">Cruze os usuários com o PDF ativo</p>
+              <h3 className="font-extrabold text-foreground text-xl tracking-tight">Varredura de Nomes</h3>
+              <p className="text-sm font-medium text-muted-foreground mt-0.5">Cruze os usuários com o PDF ativo</p>
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <button
               onClick={handleVerify}
               disabled={!pdfStatus?.hasFile || isVerifying || isLoadingResults}
-              className="px-5 py-2.5 rounded-xl font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              className="px-6 py-3.5 rounded-xl font-bold bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2.5"
             >
-              {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              {isVerifying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
               Verificar Nomes
             </button>
             <button
               onClick={() => notifyMutation.mutate()}
               disabled={!resultsData?.hasPdf || notifyMutation.isPending || !resultsData.results.some(r => r.found)}
-              className="px-5 py-2.5 rounded-xl font-semibold bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all flex items-center justify-center gap-2"
+              className="px-6 py-3.5 rounded-xl font-bold bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all flex items-center justify-center gap-2.5"
             >
-              {notifyMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+              {notifyMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
               Enviar Notificações
             </button>
           </div>
         </div>
 
         {/* Results Table */}
-        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col">
-          <div className="px-6 py-4 border-b border-border bg-muted/30 flex justify-between items-center">
-            <h3 className="font-semibold text-foreground">Resultados da Última Verificação</h3>
+        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col mb-10">
+          <div className="px-6 py-6 border-b border-border bg-muted/30 flex justify-between items-center">
+            <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
+              Resultados da Última Verificação
+            </h3>
             {resultsData?.checkedAt && (
-              <span className="text-xs text-muted-foreground">
-                Última checagem: {format(new Date(resultsData.checkedAt), "dd/MM HH:mm", { locale: ptBR })}
+              <span className="text-sm font-bold text-muted-foreground bg-background px-4 py-1.5 rounded-full border border-border shadow-sm">
+                {format(new Date(resultsData.checkedAt), "dd/MM 'às' HH:mm", { locale: ptBR })}
               </span>
             )}
           </div>
           
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs text-muted-foreground uppercase bg-muted/20 border-b border-border">
+              <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="px-6 py-4 font-semibold">Nome Monitorado</th>
-                  <th className="px-6 py-4 font-semibold">E-mail</th>
-                  <th className="px-6 py-4 font-semibold hidden md:table-cell">Concurso</th>
-                  <th className="px-6 py-4 font-semibold text-right">Status</th>
+                  <th className="px-6 py-4 font-bold tracking-wider">Nome Monitorado</th>
+                  <th className="px-6 py-4 font-bold tracking-wider">E-mail</th>
+                  <th className="px-6 py-4 font-bold tracking-wider hidden md:table-cell">Concurso</th>
+                  <th className="px-6 py-4 font-bold tracking-wider text-right">Status no PDF</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {isLoadingResults ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center">
-                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mx-auto" />
+                    <td colSpan={4} className="px-6 py-16 text-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground font-bold">Carregando resultados...</p>
                     </td>
                   </tr>
                 ) : !resultsData?.results || resultsData.results.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
-                      Nenhum resultado encontrado. Realize a verificação primeiro.
+                    <td colSpan={4} className="px-6 py-16 text-center">
+                      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-5 text-muted-foreground">
+                        <Search className="w-8 h-8" />
+                      </div>
+                      <p className="text-foreground font-bold text-lg mb-1">Nenhum resultado encontrado</p>
+                      <p className="text-muted-foreground font-medium">Realize a verificação de nomes primeiro.</p>
                     </td>
                   </tr>
                 ) : (
                   resultsData.results.map((result) => (
-                    <tr key={result.userId} className="hover:bg-muted/10 transition-colors">
-                      <td className="px-6 py-4 font-medium text-foreground">{result.nome}</td>
-                      <td className="px-6 py-4 text-muted-foreground">{result.email}</td>
-                      <td className="px-6 py-4 hidden md:table-cell text-muted-foreground">{result.concurso || "-"}</td>
-                      <td className="px-6 py-4 text-right">
+                    <tr key={result.userId} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-5 font-bold text-foreground">{result.nome}</td>
+                      <td className="px-6 py-5 text-muted-foreground font-medium">{result.email}</td>
+                      <td className="px-6 py-5 hidden md:table-cell text-muted-foreground font-medium">{result.concurso || "-"}</td>
+                      <td className="px-6 py-5 text-right">
                         {result.found ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-success/15 text-success border border-success/20">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold bg-success/15 text-success border border-success/30 shadow-sm">
+                            <CheckCircle2 className="w-4 h-4" />
                             ENCONTRADO
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
-                            <AlertCircle className="w-3.5 h-3.5" />
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-muted text-muted-foreground border border-border">
+                            <AlertCircle className="w-4 h-4" />
                             Não localizado
                           </span>
                         )}
@@ -287,6 +310,90 @@ export default function Admin() {
             </table>
           </div>
         </div>
+
+        {/* Users Monitored Table */}
+        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col">
+          <div className="px-6 py-6 border-b border-border bg-muted/30 flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl text-primary">
+              <Users className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-foreground text-lg">Usuários Monitorados</h3>
+            <span className="ml-2 bg-primary/10 text-primary text-xs font-extrabold px-3 py-1 rounded-full border border-primary/20">
+              {usersData?.users?.length || 0}
+            </span>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
+                <tr>
+                  <th className="px-6 py-4 font-bold tracking-wider">Nome</th>
+                  <th className="px-6 py-4 font-bold tracking-wider">E-mail</th>
+                  <th className="px-6 py-4 font-bold tracking-wider">Frequência</th>
+                  <th className="px-6 py-4 font-bold tracking-wider">Status</th>
+                  <th className="px-6 py-4 font-bold tracking-wider">Data de Cadastro</th>
+                  <th className="px-6 py-4 font-bold tracking-wider text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {isLoadingUsers ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-16 text-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground font-bold">Carregando usuários...</p>
+                    </td>
+                  </tr>
+                ) : !usersData?.users || usersData.users.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-16 text-center">
+                      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-5 text-muted-foreground">
+                        <Users className="w-8 h-8" />
+                      </div>
+                      <p className="text-foreground font-bold text-lg mb-1">Nenhum usuário cadastrado</p>
+                      <p className="text-muted-foreground font-medium">Os usuários aparecerão aqui quando se cadastrarem na página inicial.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  usersData.users.map((user) => (
+                    <tr key={user.id} className="hover:bg-muted/30 transition-colors group">
+                      <td className="px-6 py-5 font-bold text-foreground">{user.nome}</td>
+                      <td className="px-6 py-5 text-muted-foreground font-medium">{user.email}</td>
+                      <td className="px-6 py-5">
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-bold bg-secondary text-secondary-foreground border border-border shadow-sm">
+                          {user.frequencia === "diario" ? "Diário" : "Mensal"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold bg-success/15 text-success">
+                          <span className="w-2 h-2 rounded-full bg-success"></span>
+                          Ativo
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-muted-foreground font-medium">
+                        {user.createdAt ? format(new Date(user.createdAt), "dd/MM/yyyy", { locale: ptBR }) : "-"}
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <button
+                          onClick={() => {
+                            if (window.confirm("Tem certeza que deseja remover este usuário?")) {
+                              deleteUserMutation.mutate({ id: user.id });
+                            }
+                          }}
+                          disabled={deleteUserMutation.isPending}
+                          className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:opacity-50"
+                          title="Remover usuário"
+                        >
+                          <Trash2 className="w-4.5 h-4.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
   );
