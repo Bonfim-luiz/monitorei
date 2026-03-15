@@ -1,0 +1,213 @@
+[10:57, 15/03/2026] Luiz: You are helping me create a minimal MVP repository for a Python project that monitors Brazilian Diário Oficial PDFs and checks if specific monitored names appear in convocação lists.
+
+Your task is to create the FULL repository structure and all files.
+
+Goal of the MVP:
+- Load a list of monitored people from a YAML file
+- Read a PDF file (Diário Oficial)
+- Extract all text from the PDF
+- Check if any monitored names appear in the text
+- Print the results in the terminal
+
+If a monitored name appears → show it in the output.
+If no monitored names appear → print a message saying no monitored users were found.
+
+IMPORTANT:
+Do NOT ask permission for each file. Create everything in one go.
+
+Repository structure:
+
+diario-monitor/
+  input/
+    monitorados.yaml
+  data/
+    …
+[11:12, 15/03/2026] Luiz: You are an expert Python engineer.
+
+Create a minimal but functional MVP for a service that monitors Brazilian Diário Oficial PDFs and notifies users by email if their name appears in a convocação.
+
+The system has three responsibilities:
+
+1) Web interface where users register:
+- full name
+- email
+- concurso (optional)
+
+2) Internal daily processing:
+- The team manually uploads a Diário Oficial PDF into a backend folder
+- The system reads the PDF
+- Extracts all text
+- Checks if any registered user's name appears
+
+3) Notification:
+- Once per day the system sends an email to each user
+- Email says whether their name appeared or not
+
+IMPORTANT:
+The user does NOT upload PDFs.
+PDFs are manually placed by the internal team in a folder.
+
+Use Python.
+
+Use Streamlit for the interface.
+
+Use pdfplumber for PDF text extraction.
+
+Use YAML to store users (no database needed).
+
+Create the following repository structure:
+
+diario-monitor/
+
+app.py
+daily_check.py
+
+src/
+  extractor.py
+  matcher.py
+  emailer.py
+
+storage/
+  users.yaml
+
+data/
+  diario.pdf
+
+requirements.txt
+README.md
+
+
+FILE DETAILS
+
+requirements.txt must contain:
+
+streamlit
+pdfplumber
+pyyaml
+
+
+storage/users.yaml initial content:
+
+users: []
+
+
+app.py (Streamlit interface)
+
+Responsibilities:
+
+- Display a simple page titled "Monitor de Convocações"
+- Allow user to input:
+  - full name
+  - email
+  - concurso
+- Button "Cadastrar monitoramento"
+- Save data into storage/users.yaml
+
+Rules:
+- append new users
+- validate name and email
+- show success message after registration
+
+
+src/extractor.py
+
+Create function:
+
+extract_text_from_pdf(pdf_path)
+
+Requirements:
+- use pdfplumber
+- iterate all pages
+- concatenate text
+- convert to uppercase
+- return the full text
+
+
+src/matcher.py
+
+Create function:
+
+check_user(text, nome)
+
+Logic:
+- convert nome to uppercase
+- return True if name appears in text
+- otherwise False
+
+
+src/emailer.py
+
+Create function:
+
+send_email(to, message)
+
+Use Python's smtplib and email.message.
+
+Use Gmail SMTP:
+
+smtp.gmail.com
+port 465
+
+Use placeholder variables:
+
+EMAIL="your_email"
+PASSWORD="your_password"
+
+Send subject:
+
+"Monitor de Convocações"
+
+
+daily_check.py
+
+Responsibilities:
+
+- Load users from storage/users.yaml
+- Read PDF from data/diario.pdf
+- Extract text
+- For each user:
+    check if their name appears
+    send email saying:
+
+IF FOUND:
+
+"Seu nome foi encontrado na convocação do Diário Oficial."
+
+IF NOT FOUND:
+
+"Seu nome não apareceu nas convocações de hoje."
+
+
+README.md
+
+Explain:
+
+- what the project does
+- folder structure
+- how to run locally
+
+Include instructions:
+
+pip install -r requirements.txt
+streamlit run app.py
+
+And explain that:
+
+The team must manually place Diário Oficial PDFs in:
+
+data/diario.pdf
+
+Then run:
+
+python daily_check.py
+
+
+CODE QUALITY RULES
+
+- simple readable code
+- small functions
+- comments explaining each step
+- Python 3.10 compatible
+
+
+After generating the project, show the final repository structure.

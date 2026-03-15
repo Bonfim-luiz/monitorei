@@ -1,0 +1,18 @@
+packages:
+  "framer-motion": "For fluid page transitions and interactive component animations"
+  "react-hook-form": "For robust form state management and validation"
+  "@hookform/resolvers": "Zod validation integration with react-hook-form"
+  "react-dropzone": "For drag-and-drop PDF file uploads in the admin panel"
+  "date-fns": "For formatting Brazilian localized dates"
+  "clsx": "For conditional tailwind class merging"
+  "tailwind-merge": "For resolving tailwind class conflicts safely"
+
+images:
+  - path: "artifacts/diario-monitor/public/images/hero-bg.png"
+    description: "Abstract subtle geometric waves in clean white and light Brazilian government blue (#004b87) with soft depth and light leaks, modern minimalist corporate style"
+    aspect_ratio: "16:9"
+
+notes:
+  - Using generated hooks directly from @workspace/api-client-react as instructed.
+  - Assuming GET /api/results dynamically performs the check or returns the latest check, so the 'Verificar' button will trigger a refetch of this query.
+  - Added delete capability to user lists for better management.

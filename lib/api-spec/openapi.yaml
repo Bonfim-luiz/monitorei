@@ -1,15 +1,20 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Diário Oficial Monitor API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User registration and management
+  - name: pdf
+    description: PDF upload and processing
+  - name: results
+    description: Match results
 paths:
   /healthz:
     get:
@@ -24,6 +29,144 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users:
+    post:
+      operationId: registerUser
+      tags: [users]
+      summary: Register a user for monitoring
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterUserRequest"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all registered users
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserList"
+
+  /users/{id}:
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Remove a user from monitoring
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pdf/upload:
+    post:
+      operationId: uploadPdf
+      tags: [pdf]
+      summary: Upload a Diário Oficial PDF
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                pdf:
+                  type: string
+                  format: binary
+              required:
+                - pdf
+      responses:
+        "200":
+          description: PDF uploaded and processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResult"
+        "400":
+          description: No file provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pdf/status:
+    get:
+      operationId: getPdfStatus
+      tags: [pdf]
+      summary: Get current PDF status
+      responses:
+        "200":
+          description: PDF status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PdfStatus"
+
+  /results:
+    get:
+      operationId: getResults
+      tags: [results]
+      summary: Get latest check results
+      responses:
+        "200":
+          description: Results of the latest check
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultList"
+
+  /results/notify:
+    post:
+      operationId: sendNotifications
+      tags: [results]
+      summary: Send email notifications to all users
+      responses:
+        "200":
+          description: Notifications sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotifyResult"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +177,153 @@ components:
       required:
         - status
 
+    RegisterUserRequest:
+      type: object
+      properties:
+        nome:
+          type: string
+          minLength: 2
+        email:
+          type: string
+          format: email
+        concurso:
+          type: string
+      required:
+        - nome
+        - email
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        email:
+          type: string
+        concurso:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - nome
+        - email
+        - createdAt
+
+    UserList:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+      required:
+        - users
+
+    PdfStatus:
+      type: object
+      properties:
+        hasFile:
+          type: boolean
+        filename:
+          type: string
+          nullable: true
+        uploadedAt:
+          type: string
+          format: date-time
+          nullable: true
+        pageCount:
+          type: integer
+          nullable: true
+      required:
+        - hasFile
+
+    UploadResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        filename:
+          type: string
+        pageCount:
+          type: integer
+        message:
+          type: string
+      required:
+        - success
+        - filename
+        - pageCount
+        - message
+
+    CheckResult:
+      type: object
+      properties:
+        userId:
+          type: integer
+        nome:
+          type: string
+        email:
+          type: string
+        concurso:
+          type: string
+          nullable: true
+        found:
+          type: boolean
+      required:
+        - userId
+        - nome
+        - email
+        - found
+
+    ResultList:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/CheckResult"
+        checkedAt:
+          type: string
+          format: date-time
+          nullable: true
+        hasPdf:
+          type: boolean
+      required:
+        - results
+        - hasPdf
+
+    NotifyResult:
+      type: object
+      properties:
+        sent:
+          type: integer
+        failed:
+          type: integer
+        message:
+          type: string
+      required:
+        - sent
+        - failed
+        - message
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
