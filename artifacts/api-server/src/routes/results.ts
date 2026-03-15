@@ -1,23 +1,29 @@
 import { Router, type IRouter } from "express";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse") as (buffer: Buffer) => Promise<{ numpages: number; text: string }>;
+type PdfData = { numpages: number; text: string };
+const pdfParse = require("pdf-parse") as (buffer: Buffer) => Promise<PdfData>;
 import nodemailer from "nodemailer";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/schema";
-import { GetResultsResponse, SendNotificationsResponse } from "@workspace/api-zod";
 import { getPdfState } from "../lib/pdfStore.js";
+import fs from "fs";
 
 const router: IRouter = Router();
 
-// Extract and check names against the current PDF
-async function extractAndCheck(): Promise<{ found: boolean; nome: string; userId: number; email: string; concurso: string | null }[]> {
-  const state = getPdfState();
-  if (!state.filePath) {
-    return [];
-  }
+type CheckResult = {
+  userId: number;
+  nome: string;
+  email: string;
+  concurso: string | null;
+  found: boolean;
+};
 
-  const { default: fs } = await import("fs");
+// Extract text from current PDF and check each user's name against it
+async function extractAndCheck(): Promise<CheckResult[]> {
+  const state = getPdfState();
+  if (!state.filePath) return [];
+
   const buffer = fs.readFileSync(state.filePath);
   const data = await pdfParse(buffer);
   const textUpper = data.text.toUpperCase();
@@ -28,46 +34,38 @@ async function extractAndCheck(): Promise<{ found: boolean; nome: string; userId
     userId: user.id,
     nome: user.nome,
     email: user.email,
-    concurso: user.concurso,
+    concurso: user.concurso ?? null,
     found: textUpper.includes(user.nome.toUpperCase()),
   }));
 }
 
-// Store the last check results in memory
-let lastResults: Awaited<ReturnType<typeof extractAndCheck>> = [];
-let checkedAt: Date | null = null;
+// Keep last check results in memory
+let lastResults: CheckResult[] = [];
+let checkedAt: string | null = null;
 
-// Get current results (run check if PDF is available)
+// Get current results (auto-check if PDF is available and results are empty)
 router.get("/results", async (_req, res) => {
   try {
     const state = getPdfState();
 
     if (state.filePath && lastResults.length === 0) {
-      // Auto-run check when PDF is available
       lastResults = await extractAndCheck();
-      checkedAt = new Date();
+      checkedAt = new Date().toISOString();
     }
 
-    const response = GetResultsResponse.parse({
-      results: lastResults.map((r) => ({
-        userId: r.userId,
-        nome: r.nome,
-        email: r.email,
-        concurso: r.concurso,
-        found: r.found,
-      })),
-      checkedAt: checkedAt?.toISOString() ?? null,
+    res.json({
+      results: lastResults,
+      checkedAt,
       hasPdf: state.filePath !== null,
     });
-
-    res.json(response);
   } catch (err) {
-    console.error("Error getting results:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Error getting results:", msg);
     res.status(500).json({ error: "Erro ao buscar resultados." });
   }
 });
 
-// Run manual check and refresh results
+// Manually trigger a fresh check against the current PDF
 router.post("/results/check", async (_req, res) => {
   try {
     const state = getPdfState();
@@ -77,28 +75,21 @@ router.post("/results/check", async (_req, res) => {
     }
 
     lastResults = await extractAndCheck();
-    checkedAt = new Date();
+    checkedAt = new Date().toISOString();
 
-    const response = GetResultsResponse.parse({
-      results: lastResults.map((r) => ({
-        userId: r.userId,
-        nome: r.nome,
-        email: r.email,
-        concurso: r.concurso,
-        found: r.found,
-      })),
-      checkedAt: checkedAt.toISOString(),
+    res.json({
+      results: lastResults,
+      checkedAt,
       hasPdf: true,
     });
-
-    res.json(response);
   } catch (err) {
-    console.error("Error running check:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Error running check:", msg);
     res.status(500).json({ error: "Erro ao verificar convocações." });
   }
 });
 
-// Send email notifications to all users
+// Send email notifications to all users based on last check
 router.post("/results/notify", async (_req, res) => {
   try {
     if (lastResults.length === 0) {
@@ -110,7 +101,9 @@ router.post("/results/notify", async (_req, res) => {
     const emailPass = process.env.EMAIL_PASS;
 
     if (!emailUser || !emailPass) {
-      res.status(500).json({ error: "Credenciais de email não configuradas. Defina EMAIL_USER e EMAIL_PASS nas variáveis de ambiente." });
+      res.status(500).json({
+        error: "Credenciais de email não configuradas. Defina EMAIL_USER e EMAIL_PASS nas variáveis de ambiente.",
+      });
       return;
     }
 
@@ -119,19 +112,17 @@ router.post("/results/notify", async (_req, res) => {
       host: "smtp.gmail.com",
       port: 465,
       secure: true,
-      auth: {
-        user: emailUser,
-        pass: emailPass,
-      },
+      auth: { user: emailUser, pass: emailPass },
     });
 
     let sent = 0;
     let failed = 0;
 
     for (const result of lastResults) {
+      const concursoInfo = result.concurso ? ` (${result.concurso})` : "";
       const message = result.found
-        ? `Olá, ${result.nome}!\n\nSeu nome foi encontrado na convocação do Diário Oficial de hoje${result.concurso ? ` (${result.concurso})` : ""}.\n\nAcesse o portal para mais detalhes.\n\nMonitor de Convocações`
-        : `Olá, ${result.nome}!\n\nSeu nome não apareceu nas convocações do Diário Oficial de hoje${result.concurso ? ` (${result.concurso})` : ""}.\n\nContinue acompanhando.\n\nMonitor de Convocações`;
+        ? `Olá, ${result.nome}!\n\nSeu nome foi encontrado na convocação do Diário Oficial de hoje${concursoInfo}.\n\nAcesse o portal para mais detalhes.\n\nMonitor de Convocações`
+        : `Olá, ${result.nome}!\n\nSeu nome não apareceu nas convocações do Diário Oficial de hoje${concursoInfo}.\n\nContinue acompanhando.\n\nMonitor de Convocações`;
 
       try {
         await transporter.sendMail({
@@ -142,20 +133,20 @@ router.post("/results/notify", async (_req, res) => {
         });
         sent++;
       } catch (err) {
-        console.error(`Failed to send email to ${result.email}:`, err);
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`Failed to send email to ${result.email}:`, msg);
         failed++;
       }
     }
 
-    const response = SendNotificationsResponse.parse({
+    res.json({
       sent,
       failed,
-      message: `${sent} email(s) enviado(s) com sucesso. ${failed} falha(s).`,
+      message: `${sent} email(s) enviado(s) com sucesso.${failed > 0 ? ` ${failed} falha(s).` : ""}`,
     });
-
-    res.json(response);
   } catch (err) {
-    console.error("Error sending notifications:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Error sending notifications:", msg);
     res.status(500).json({ error: "Erro ao enviar notificações." });
   }
 });
