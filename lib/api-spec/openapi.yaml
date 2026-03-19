@@ -1,20 +1,18 @@
 openapi: 3.1.0
 info:
   title: Api
-  version: 0.1.0
-  description: Monitorei - Diário Oficial Monitor API
+  version: 0.2.0
+  description: Monitorei API
 servers:
   - url: /api
-    description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: users
-    description: User registration and management
+  - name: concursos
+  - name: cidades
+  - name: convocacoes
   - name: pdf
-    description: PDF upload and processing
   - name: results
-    description: Match results
 paths:
   /healthz:
     get:
@@ -33,7 +31,6 @@ paths:
     post:
       operationId: registerUser
       tags: [users]
-      summary: Register a user for monitoring
       requestBody:
         required: true
         content:
@@ -62,7 +59,6 @@ paths:
     get:
       operationId: listUsers
       tags: [users]
-      summary: List all registered users
       responses:
         "200":
           description: List of users
@@ -71,11 +67,34 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserList"
 
+  /users/by-email:
+    get:
+      operationId: getUserByEmail
+      tags: [users]
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User profile with concurso info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /users/{id}:
     delete:
       operationId: deleteUser
       tags: [users]
-      summary: Remove a user from monitoring
       parameters:
         - name: id
           in: path
@@ -96,11 +115,46 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /concursos:
+    get:
+      operationId: listConcursos
+      tags: [concursos]
+      responses:
+        "200":
+          description: List of concursos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConcursoList"
+
+  /cidades:
+    get:
+      operationId: listCidades
+      tags: [cidades]
+      responses:
+        "200":
+          description: List of cidades
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CidadeList"
+
+  /convocacoes:
+    get:
+      operationId: listConvocacoes
+      tags: [convocacoes]
+      responses:
+        "200":
+          description: List of convocacoes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConvocacaoList"
+
   /pdf/upload:
     post:
       operationId: uploadPdf
       tags: [pdf]
-      summary: Upload a Diário Oficial PDF
       requestBody:
         required: true
         content:
@@ -131,7 +185,6 @@ paths:
     get:
       operationId: getPdfStatus
       tags: [pdf]
-      summary: Get current PDF status
       responses:
         "200":
           description: PDF status
@@ -144,20 +197,36 @@ paths:
     get:
       operationId: getResults
       tags: [results]
-      summary: Get latest check results
       responses:
         "200":
-          description: Results of the latest check
+          description: Latest check results
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ResultList"
 
+  /results/check:
+    post:
+      operationId: runCheck
+      tags: [results]
+      responses:
+        "200":
+          description: Check ran and results saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultList"
+        "400":
+          description: No PDF loaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /results/notify:
     post:
       operationId: sendNotifications
       tags: [results]
-      summary: Send email notifications to all users
       responses:
         "200":
           description: Notifications sent
@@ -173,8 +242,7 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
     RegisterUserRequest:
       type: object
@@ -185,13 +253,11 @@ components:
         email:
           type: string
           format: email
-        frequencia:
+        plano:
           type: string
-          enum: [diario, mensal]
-          default: diario
-      required:
-        - nome
-        - email
+          enum: [basic, pro, premium]
+          default: basic
+      required: [nome, email]
 
     User:
       type: object
@@ -202,21 +268,46 @@ components:
           type: string
         email:
           type: string
-        frequencia:
+        plano:
           type: string
-          enum: [diario, mensal]
         status:
           type: string
+        concursoId:
+          type: integer
+          nullable: true
         createdAt:
           type: string
-          format: date-time
-      required:
-        - id
-        - nome
-        - email
-        - frequencia
-        - status
-        - createdAt
+      required: [id, nome, email, plano, status, createdAt]
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        email:
+          type: string
+        plano:
+          type: string
+        status:
+          type: string
+        concurso:
+          nullable: true
+          type: object
+          properties:
+            id:
+              type: integer
+            nome:
+              type: string
+            cidade:
+              type: string
+          required: [id, nome, cidade]
+        convocado:
+          type: boolean
+        totalConvocados:
+          type: integer
+      required: [id, nome, email, plano, status, convocado, totalConvocados]
 
     UserList:
       type: object
@@ -225,8 +316,71 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/User"
-      required:
-        - users
+      required: [users]
+
+    Concurso:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        cidadeId:
+          type: integer
+        cidadeNome:
+          type: string
+      required: [id, nome, cidadeId, cidadeNome]
+
+    ConcursoList:
+      type: object
+      properties:
+        concursos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Concurso"
+      required: [concursos]
+
+    Cidade:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+      required: [id, nome]
+
+    CidadeList:
+      type: object
+      properties:
+        cidades:
+          type: array
+          items:
+            $ref: "#/components/schemas/Cidade"
+      required: [cidades]
+
+    Convocacao:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        concursoId:
+          type: integer
+        concursoNome:
+          type: string
+        data:
+          type: string
+      required: [id, nome, concursoId, concursoNome, data]
+
+    ConvocacaoList:
+      type: object
+      properties:
+        convocacoes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Convocacao"
+      required: [convocacoes]
 
     PdfStatus:
       type: object
@@ -238,13 +392,11 @@ components:
           nullable: true
         uploadedAt:
           type: string
-          format: date-time
           nullable: true
         pageCount:
           type: integer
           nullable: true
-      required:
-        - hasFile
+      required: [hasFile]
 
     UploadResult:
       type: object
@@ -257,11 +409,7 @@ components:
           type: integer
         message:
           type: string
-      required:
-        - success
-        - filename
-        - pageCount
-        - message
+      required: [success, filename, pageCount, message]
 
     CheckResult:
       type: object
@@ -274,11 +422,7 @@ components:
           type: string
         found:
           type: boolean
-      required:
-        - userId
-        - nome
-        - email
-        - found
+      required: [userId, nome, email, found]
 
     ResultList:
       type: object
@@ -289,13 +433,10 @@ components:
             $ref: "#/components/schemas/CheckResult"
         checkedAt:
           type: string
-          format: date-time
           nullable: true
         hasPdf:
           type: boolean
-      required:
-        - results
-        - hasPdf
+      required: [results, hasPdf]
 
     NotifyResult:
       type: object
@@ -306,10 +447,7 @@ components:
           type: integer
         message:
           type: string
-      required:
-        - sent
-        - failed
-        - message
+      required: [sent, failed, message]
 
     SuccessResponse:
       type: object
@@ -318,14 +456,11 @@ components:
           type: boolean
         message:
           type: string
-      required:
-        - success
-        - message
+      required: [success, message]
 
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-      required:
-        - error
+      required: [error]

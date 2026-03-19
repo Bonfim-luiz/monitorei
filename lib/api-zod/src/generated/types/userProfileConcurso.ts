@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface HealthStatus {
-  status: string;
-}
+export type UserProfileConcurso = {
+  id: number;
+  nome: string;
+  cidade: string;
+} | null;

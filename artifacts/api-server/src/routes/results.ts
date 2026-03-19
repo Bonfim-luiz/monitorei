@@ -5,7 +5,8 @@ type PdfData = { numpages: number; text: string };
 const pdfParse = require("pdf-parse") as (buffer: Buffer) => Promise<PdfData>;
 import nodemailer from "nodemailer";
 import { db } from "@workspace/db";
-import { usersTable } from "@workspace/db/schema";
+import { usersTable, convocacoesTable } from "@workspace/db/schema";
+import { eq } from "drizzle-orm";
 import { getPdfState } from "../lib/pdfStore.js";
 import fs from "fs";
 
@@ -15,14 +16,12 @@ type CheckResult = {
   userId: number;
   nome: string;
   email: string;
-  concurso: string | null;
   found: boolean;
 };
 
-// Extract text from current PDF and check each user's name against it
-async function extractAndCheck(): Promise<CheckResult[]> {
+async function extractAndCheck(): Promise<{ results: CheckResult[]; foundNames: string[] }> {
   const state = getPdfState();
-  if (!state.filePath) return [];
+  if (!state.filePath) return { results: [], foundNames: [] };
 
   const buffer = fs.readFileSync(state.filePath);
   const data = await pdfParse(buffer);
@@ -30,26 +29,29 @@ async function extractAndCheck(): Promise<CheckResult[]> {
 
   const users = await db.select().from(usersTable);
 
-  return users.map((user) => ({
+  const results = users.map((user) => ({
     userId: user.id,
     nome: user.nome,
     email: user.email,
-    concurso: user.concurso ?? null,
     found: textUpper.includes(user.nome.toUpperCase()),
   }));
+
+  // Collect names found (for saving to convocacoes)
+  const foundNames = results.filter((r) => r.found).map((r) => r.nome);
+
+  return { results, foundNames };
 }
 
-// Keep last check results in memory
 let lastResults: CheckResult[] = [];
 let checkedAt: string | null = null;
 
-// Get current results (auto-check if PDF is available and results are empty)
 router.get("/results", async (_req, res) => {
   try {
     const state = getPdfState();
 
     if (state.filePath && lastResults.length === 0) {
-      lastResults = await extractAndCheck();
+      const { results } = await extractAndCheck();
+      lastResults = results;
       checkedAt = new Date().toISOString();
     }
 
@@ -65,7 +67,6 @@ router.get("/results", async (_req, res) => {
   }
 });
 
-// Manually trigger a fresh check against the current PDF
 router.post("/results/check", async (_req, res) => {
   try {
     const state = getPdfState();
@@ -74,8 +75,26 @@ router.post("/results/check", async (_req, res) => {
       return;
     }
 
-    lastResults = await extractAndCheck();
+    const { results, foundNames } = await extractAndCheck();
+    lastResults = results;
     checkedAt = new Date().toISOString();
+
+    // Save all found names to convocacoes table (default concurso_id = 1)
+    const today = new Date().toISOString().slice(0, 10);
+    if (foundNames.length > 0) {
+      // Remove today's entries for this concurso to avoid duplicates, then re-insert
+      await db
+        .delete(convocacoesTable)
+        .where(eq(convocacoesTable.data, today));
+
+      await db.insert(convocacoesTable).values(
+        foundNames.map((nome) => ({
+          nome,
+          concursoId: 1,
+          data: today,
+        }))
+      );
+    }
 
     res.json({
       results: lastResults,
@@ -89,7 +108,6 @@ router.post("/results/check", async (_req, res) => {
   }
 });
 
-// Send email notifications to all users based on last check
 router.post("/results/notify", async (_req, res) => {
   try {
     if (lastResults.length === 0) {
@@ -102,12 +120,11 @@ router.post("/results/notify", async (_req, res) => {
 
     if (!emailUser || !emailPass) {
       res.status(500).json({
-        error: "Credenciais de email não configuradas. Defina EMAIL_USER e EMAIL_PASS nas variáveis de ambiente.",
+        error: "Credenciais de email não configuradas. Defina EMAIL_USER e EMAIL_PASS.",
       });
       return;
     }
 
-    // Configure Gmail SMTP transporter
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 465,
@@ -119,16 +136,15 @@ router.post("/results/notify", async (_req, res) => {
     let failed = 0;
 
     for (const result of lastResults) {
-      const concursoInfo = result.concurso ? ` (${result.concurso})` : "";
       const message = result.found
-        ? `Olá, ${result.nome}!\n\nSeu nome foi encontrado na convocação do Diário Oficial de hoje${concursoInfo}.\n\nAcesse o portal para mais detalhes.\n\nMonitor de Convocações`
-        : `Olá, ${result.nome}!\n\nSeu nome não apareceu nas convocações do Diário Oficial de hoje${concursoInfo}.\n\nContinue acompanhando.\n\nMonitor de Convocações`;
+        ? `Olá, ${result.nome}!\n\nSeu nome foi encontrado na convocação do Diário Oficial de hoje.\n\nAcesse o portal Monitorei para mais detalhes.\n\nMonitorei`
+        : `Olá, ${result.nome}!\n\nSeu nome não apareceu nas convocações do Diário Oficial de hoje.\n\nContinue acompanhando.\n\nMonitorei`;
 
       try {
         await transporter.sendMail({
-          from: `"Monitor de Convocações" <${emailUser}>`,
+          from: `"Monitorei" <${emailUser}>`,
           to: result.email,
-          subject: "Monitor de Convocações – Resultado do Dia",
+          subject: "Monitorei – Resultado do Dia",
           text: message,
         });
         sent++;

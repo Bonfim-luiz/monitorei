@@ -5,7 +5,8 @@
  * Monitorei API
  * OpenAPI spec version: 0.2.0
  */
+import type { Cidade } from "./cidade";
 
-export interface HealthStatus {
-  status: string;
+export interface CidadeList {
+  cidades: Cidade[];
 }

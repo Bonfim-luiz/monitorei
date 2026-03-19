@@ -6,26 +6,30 @@ import { z } from "zod";
 import { useRegisterUser } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { 
-  CheckCircle2, AlertCircle, BellRing, 
-  User, Mail, Loader2, CalendarClock
+import {
+  CheckCircle2, AlertCircle, BellRing,
+  User, Mail, Loader2, Award
 } from "lucide-react";
 
 const registerSchema = z.object({
   nome: z.string().min(2, "O nome deve ter pelo menos 2 caracteres"),
   email: z.string().email("E-mail inválido"),
-  frequencia: z.enum(["diario", "mensal"], {
-    required_error: "Selecione a frequência",
-  }),
+  plano: z.enum(["basic", "pro", "premium"]).default("basic"),
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
+
+const PLANO_OPTIONS = [
+  { value: "basic", label: "Basic — 1 concurso" },
+  { value: "pro", label: "Pro — até 3 concursos" },
+  { value: "premium", label: "Premium — ilimitado" },
+];
 
 export default function Home() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSuccess, setIsSuccess] = useState(false);
-  
+
   const registerMutation = useRegisterUser({
     mutation: {
       onSuccess: () => {
@@ -36,18 +40,19 @@ export default function Home() {
         const errorMsg = error?.response?.data?.error;
         toast({
           title: "Erro ao cadastrar",
-          description: errorMsg === "Email already registered" || error?.response?.status === 409 
-            ? "Este email já está cadastrado." 
-            : errorMsg || "Verifique os dados e tente novamente.",
+          description:
+            error?.response?.status === 409
+              ? "Este email já está cadastrado."
+              : errorMsg || "Verifique os dados e tente novamente.",
           variant: "destructive",
         });
-      }
-    }
+      },
+    },
   });
 
   const form = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { nome: "", email: "", frequencia: "diario" }
+    defaultValues: { nome: "", email: "", plano: "basic" },
   });
 
   const onSubmit = (data: RegisterForm) => {
@@ -56,14 +61,13 @@ export default function Home() {
 
   return (
     <div className="flex-1 w-full bg-background relative flex flex-col">
-      {/* Decorative gradient blur */}
       <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-br from-primary/10 via-background to-background pointer-events-none -z-10 blur-3xl"></div>
 
       <div className="container mx-auto px-4 py-12 md:py-20 relative z-10 max-w-6xl flex-1 flex flex-col justify-center">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          
-          {/* Left Column: Copy */}
-          <motion.div 
+
+          {/* Left Column */}
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -88,7 +92,7 @@ export default function Home() {
                   O Problema
                 </h3>
                 <p className="text-foreground/80 leading-relaxed font-medium">
-                  Muitas pessoas passam em concursos públicos mas perdem sua convocação porque não conseguem verificar o Diário Oficial todos os dias. A leitura manual é exaustiva e falha.
+                  Muitas pessoas passam em concursos públicos mas perdem sua convocação porque não conseguem verificar o Diário Oficial todos os dias.
                 </p>
               </div>
 
@@ -98,14 +102,14 @@ export default function Home() {
                   A Solução
                 </h3>
                 <p className="text-foreground/80 leading-relaxed font-medium">
-                  Monitorei verifica o Diário Oficial por você todos os dias e envia um e-mail imediatamente quando seu nome for publicado. Simples, rápido e automático.
+                  Monitorei verifica o Diário Oficial por você e envia um e-mail imediatamente quando seu nome for publicado. Simples, rápido e automático.
                 </p>
               </div>
             </div>
           </motion.div>
 
-          {/* Right Column: Pricing & Form */}
-          <motion.div 
+          {/* Right Column: Form */}
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
@@ -113,7 +117,7 @@ export default function Home() {
           >
             <div className="bg-primary p-8 md:p-10 text-center text-primary-foreground relative overflow-hidden">
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
-              <h2 className="text-2xl font-bold mb-3 relative z-10 text-primary-foreground/90 uppercase tracking-wider text-sm">Plano Anual</h2>
+              <h2 className="relative z-10 text-primary-foreground/90 uppercase tracking-wider text-sm font-bold mb-3">Plano Anual</h2>
               <div className="flex items-center justify-center gap-1 font-display relative z-10">
                 <span className="text-2xl font-bold opacity-80 mt-2">R$</span>
                 <span className="text-6xl font-extrabold tracking-tighter">19,99</span>
@@ -123,7 +127,7 @@ export default function Home() {
                 Monitoramos seu nome diariamente e enviamos um alerta caso você seja convocado.
               </p>
             </div>
-            
+
             <div className="p-8 md:p-10">
               <AnimatePresence mode="wait">
                 {isSuccess ? (
@@ -142,10 +146,7 @@ export default function Home() {
                       Em breve você receberá notificações.
                     </p>
                     <button
-                      onClick={() => {
-                        setIsSuccess(false);
-                        form.reset();
-                      }}
+                      onClick={() => { setIsSuccess(false); form.reset(); }}
                       className="w-full px-6 py-4 rounded-xl font-bold bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
                     >
                       Cadastrar outra pessoa
@@ -160,6 +161,7 @@ export default function Home() {
                     onSubmit={form.handleSubmit(onSubmit)}
                     className="space-y-5"
                   >
+                    {/* Nome */}
                     <div className="space-y-2.5">
                       <label className="text-sm font-bold text-foreground flex items-center gap-2">
                         <User className="w-4 h-4 text-primary" />
@@ -178,6 +180,7 @@ export default function Home() {
                       )}
                     </div>
 
+                    {/* Email */}
                     <div className="space-y-2.5">
                       <label className="text-sm font-bold text-foreground flex items-center gap-2">
                         <Mail className="w-4 h-4 text-primary" />
@@ -197,45 +200,24 @@ export default function Home() {
                       )}
                     </div>
 
-                    <div className="space-y-3 pt-2">
+                    {/* Plano */}
+                    <div className="space-y-2.5">
                       <label className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <CalendarClock className="w-4 h-4 text-primary" />
-                        Frequência de Notificação
+                        <Award className="w-4 h-4 text-primary" />
+                        Plano
                       </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <label className={`
-                          flex items-center justify-center gap-2 p-3.5 rounded-xl border-2 cursor-pointer transition-all
-                          ${form.watch("frequencia") === "diario" 
-                            ? "border-primary bg-primary/5 text-primary font-bold shadow-sm" 
-                            : "border-border hover:bg-muted text-muted-foreground font-semibold"}
-                        `}>
-                          <input 
-                            type="radio" 
-                            value="diario" 
-                            {...form.register("frequencia")} 
-                            className="sr-only" 
-                          />
-                          Diário
-                        </label>
-                        <label className={`
-                          flex items-center justify-center gap-2 p-3.5 rounded-xl border-2 cursor-pointer transition-all
-                          ${form.watch("frequencia") === "mensal" 
-                            ? "border-primary bg-primary/5 text-primary font-bold shadow-sm" 
-                            : "border-border hover:bg-muted text-muted-foreground font-semibold"}
-                        `}>
-                          <input 
-                            type="radio" 
-                            value="mensal" 
-                            {...form.register("frequencia")} 
-                            className="sr-only" 
-                          />
-                          Mensal
-                        </label>
-                      </div>
-                      {form.formState.errors.frequencia && (
+                      <select
+                        {...form.register("plano")}
+                        className="w-full px-4 py-3.5 rounded-xl bg-background border-2 border-border text-foreground font-medium focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+                      >
+                        {PLANO_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                      {form.formState.errors.plano && (
                         <p className="text-sm text-destructive flex items-center gap-1.5 font-bold mt-1">
                           <AlertCircle className="w-3.5 h-3.5" />
-                          {form.formState.errors.frequencia.message}
+                          {form.formState.errors.plano.message}
                         </p>
                       )}
                     </div>

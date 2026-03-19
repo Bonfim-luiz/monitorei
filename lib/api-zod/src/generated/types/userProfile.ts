@@ -5,13 +5,15 @@
  * Monitorei API
  * OpenAPI spec version: 0.2.0
  */
+import type { UserProfileConcurso } from "./userProfileConcurso";
 
-export interface User {
+export interface UserProfile {
   id: number;
   nome: string;
   email: string;
   plano: string;
   status: string;
-  concursoId?: number | null;
-  createdAt: string;
+  concurso?: UserProfileConcurso;
+  convocado: boolean;
+  totalConvocados: number;
 }

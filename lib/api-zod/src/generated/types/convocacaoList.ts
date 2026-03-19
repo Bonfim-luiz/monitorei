@@ -5,7 +5,8 @@
  * Monitorei API
  * OpenAPI spec version: 0.2.0
  */
+import type { Convocacao } from "./convocacao";
 
-export interface HealthStatus {
-  status: string;
+export interface ConvocacaoList {
+  convocacoes: Convocacao[];
 }

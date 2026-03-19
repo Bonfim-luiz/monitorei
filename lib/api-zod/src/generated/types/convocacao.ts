@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface Convocacao {
+  id: number;
+  nome: string;
+  concursoId: number;
+  concursoNome: string;
+  data: string;
 }
