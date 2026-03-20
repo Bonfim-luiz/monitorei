@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Monitorei API
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.3.0
  */
 
 export * from "./checkResult";
@@ -11,6 +11,7 @@ export * from "./cidade";
 export * from "./cidadeList";
 export * from "./concurso";
 export * from "./concursoList";
+export * from "./concursoStatus";
 export * from "./convocacao";
 export * from "./convocacaoList";
 export * from "./errorResponse";
@@ -19,6 +20,7 @@ export * from "./healthStatus";
 export * from "./notifyResult";
 export * from "./pdfStatus";
 export * from "./registerUserRequest";
+export * from "./registerUserRequestFrequencia";
 export * from "./registerUserRequestPlano";
 export * from "./resultList";
 export * from "./successResponse";
@@ -27,4 +29,3 @@ export * from "./uploadResult";
 export * from "./user";
 export * from "./userList";
 export * from "./userProfile";
-export * from "./userProfileConcurso";

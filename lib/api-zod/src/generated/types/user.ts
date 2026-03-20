@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Monitorei API
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.3.0
  */
 
 export interface User {
@@ -12,6 +12,10 @@ export interface User {
   email: string;
   plano: string;
   status: string;
+  frequencia: string;
+  cidadeId?: number | null;
+  cidadeNome?: string | null;
   concursoId?: number | null;
+  concursoIds: number[];
   createdAt: string;
 }

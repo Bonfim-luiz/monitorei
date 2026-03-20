@@ -1,12 +1,21 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { usersTable, concursosTable, cidadesTable, convocacoesTable } from "@workspace/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, inArray } from "drizzle-orm";
 
 const router: IRouter = Router();
 
+function parseIds(raw: string | null | undefined): number[] {
+  try {
+    const parsed = JSON.parse(raw ?? "[]");
+    return Array.isArray(parsed) ? parsed.map(Number).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
 router.post("/users", async (req, res) => {
-  const { nome, email, plano = "basic" } = req.body ?? {};
+  const { nome, email, plano = "basic", cidadeId = 1, concursoIds = [1], frequencia = "semanal" } = req.body ?? {};
 
   if (!nome || typeof nome !== "string" || nome.trim().length < 2) {
     res.status(400).json({ error: "Nome inválido. Mínimo 2 caracteres." });
@@ -17,11 +26,27 @@ router.post("/users", async (req, res) => {
     return;
   }
 
+  const ids = Array.isArray(concursoIds) ? concursoIds.map(Number) : [1];
+  const primaryConcursoId = ids[0] ?? 1;
+
   try {
     const [user] = await db
       .insert(usersTable)
-      .values({ nome: nome.trim(), email: email.trim().toLowerCase(), plano, status: "ativo", concursoId: 1 })
+      .values({
+        nome: nome.trim(),
+        email: email.trim().toLowerCase(),
+        plano,
+        status: "ativo",
+        frequencia,
+        cidadeId,
+        concursoId: primaryConcursoId,
+        concursoIds: JSON.stringify(ids),
+      })
       .returning();
+
+    const cidade = user.cidadeId
+      ? await db.select().from(cidadesTable).where(eq(cidadesTable.id, user.cidadeId)).limit(1)
+      : [];
 
     res.status(201).json({
       id: user.id,
@@ -29,7 +54,11 @@ router.post("/users", async (req, res) => {
       email: user.email,
       plano: user.plano,
       status: user.status,
+      frequencia: user.frequencia,
+      cidadeId: user.cidadeId ?? null,
+      cidadeNome: cidade[0]?.nome ?? null,
       concursoId: user.concursoId ?? null,
+      concursoIds: parseIds(user.concursoIds),
       createdAt: user.createdAt.toISOString(),
     });
   } catch (err: unknown) {
@@ -46,6 +75,9 @@ router.post("/users", async (req, res) => {
 router.get("/users", async (_req, res) => {
   try {
     const users = await db.select().from(usersTable).orderBy(usersTable.id);
+    const cidades = await db.select().from(cidadesTable);
+    const cidadeMap = new Map(cidades.map((c) => [c.id, c.nome]));
+
     res.json({
       users: users.map((u) => ({
         id: u.id,
@@ -53,7 +85,11 @@ router.get("/users", async (_req, res) => {
         email: u.email,
         plano: u.plano,
         status: u.status,
+        frequencia: u.frequencia,
+        cidadeId: u.cidadeId ?? null,
+        cidadeNome: u.cidadeId ? (cidadeMap.get(u.cidadeId) ?? null) : null,
         concursoId: u.concursoId ?? null,
+        concursoIds: parseIds(u.concursoIds),
         createdAt: u.createdAt.toISOString(),
       })),
     });
@@ -82,48 +118,49 @@ router.get("/users/by-email", async (req, res) => {
       return;
     }
 
-    let concursoInfo = null;
-    let totalConvocados = 0;
+    const ids = parseIds(user.concursoIds);
 
-    if (user.concursoId) {
-      const [concurso] = await db
-        .select()
-        .from(concursosTable)
-        .where(eq(concursosTable.id, user.concursoId))
-        .limit(1);
-
-      if (concurso) {
-        const [cidade] = await db
-          .select()
-          .from(cidadesTable)
-          .where(eq(cidadesTable.id, concurso.cidadeId))
-          .limit(1);
-
-        concursoInfo = {
-          id: concurso.id,
-          nome: concurso.nome,
-          cidade: cidade?.nome ?? "Desconhecida",
-        };
-
-        const countResult = await db
-          .select({ count: sql<string>`count(*)` })
-          .from(convocacoesTable)
-          .where(eq(convocacoesTable.concursoId, user.concursoId));
-
-        totalConvocados = parseInt(countResult[0]?.count ?? "0", 10);
-      }
-    }
-
-    const convocacoes = user.concursoId
-      ? await db
-          .select({ nome: convocacoesTable.nome })
-          .from(convocacoesTable)
-          .where(eq(convocacoesTable.concursoId, user.concursoId))
+    const cidade = user.cidadeId
+      ? await db.select().from(cidadesTable).where(eq(cidadesTable.id, user.cidadeId)).limit(1)
       : [];
 
+    const concursos = ids.length > 0
+      ? await db.select().from(concursosTable).where(inArray(concursosTable.id, ids))
+      : [];
+
+    const allCidades = await db.select().from(cidadesTable);
+    const cidadeMap = new Map(allCidades.map((c) => [c.id, c.nome]));
+
     const nomeUpper = user.nome.toUpperCase();
-    const convocado = convocacoes.some(
-      (c) => c.nome.toUpperCase().includes(nomeUpper) || nomeUpper.includes(c.nome.toUpperCase())
+
+    const concursoStatuses = await Promise.all(
+      concursos.map(async (c) => {
+        const allConvocacoes = await db
+          .select()
+          .from(convocacoesTable)
+          .where(eq(convocacoesTable.concursoId, c.id));
+
+        const totalConvocados = allConvocacoes.length;
+
+        const convocado = allConvocacoes.some(
+          (cv) => cv.nome.toUpperCase().includes(nomeUpper) || nomeUpper.includes(cv.nome.toUpperCase())
+        );
+
+        const ultima = allConvocacoes
+          .map((cv) => cv.data)
+          .filter(Boolean)
+          .sort()
+          .reverse()[0] ?? null;
+
+        return {
+          id: c.id,
+          nome: c.nome,
+          cidade: cidadeMap.get(c.cidadeId) ?? "Desconhecida",
+          convocado,
+          totalConvocados,
+          ultimaConvocacao: ultima,
+        };
+      })
     );
 
     res.json({
@@ -132,9 +169,9 @@ router.get("/users/by-email", async (req, res) => {
       email: user.email,
       plano: user.plano,
       status: user.status,
-      concurso: concursoInfo,
-      convocado,
-      totalConvocados,
+      frequencia: user.frequencia,
+      cidadeNome: cidade[0]?.nome ?? null,
+      concursos: concursoStatuses,
     });
   } catch (err) {
     console.error("Error getting user profile:", err instanceof Error ? err.message : String(err));

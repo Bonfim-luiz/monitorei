@@ -3,8 +3,9 @@
  * Do not edit manually.
  * Api
  * Monitorei API
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.3.0
  */
+import type { RegisterUserRequestFrequencia } from "./registerUserRequestFrequencia";
 import type { RegisterUserRequestPlano } from "./registerUserRequestPlano";
 
 export interface RegisterUserRequest {
@@ -12,4 +13,7 @@ export interface RegisterUserRequest {
   nome: string;
   email: string;
   plano?: RegisterUserRequestPlano;
+  cidadeId?: number;
+  concursoIds?: number[];
+  frequencia?: RegisterUserRequestFrequencia;
 }

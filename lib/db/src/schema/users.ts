@@ -7,6 +7,9 @@ export const usersTable = pgTable("monitored_users", {
   plano: text("plano").notNull().default("basic"),
   status: text("status").notNull().default("ativo"),
   concursoId: integer("concurso_id"),
+  concursoIds: text("concurso_ids").default("[]"),
+  frequencia: text("frequencia").notNull().default("semanal"),
+  cidadeId: integer("cidade_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

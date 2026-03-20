@@ -3,9 +3,9 @@
  * Do not edit manually.
  * Api
  * Monitorei API
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.3.0
  */
-import type { UserProfileConcurso } from "./userProfileConcurso";
+import type { ConcursoStatus } from "./concursoStatus";
 
 export interface UserProfile {
   id: number;
@@ -13,7 +13,7 @@ export interface UserProfile {
   email: string;
   plano: string;
   status: string;
-  concurso?: UserProfileConcurso;
-  convocado: boolean;
-  totalConvocados: number;
+  frequencia: string;
+  cidadeNome?: string | null;
+  concursos: ConcursoStatus[];
 }

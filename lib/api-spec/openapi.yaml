@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Api
-  version: 0.2.0
+  version: 0.3.0
   description: Monitorei API
 servers:
   - url: /api
@@ -79,7 +79,7 @@ paths:
             type: string
       responses:
         "200":
-          description: User profile with concurso info
+          description: User profile
           content:
             application/json:
               schema:
@@ -257,6 +257,18 @@ components:
           type: string
           enum: [basic, pro, premium]
           default: basic
+        cidadeId:
+          type: integer
+          default: 1
+        concursoIds:
+          type: array
+          items:
+            type: integer
+          default: [1]
+        frequencia:
+          type: string
+          enum: [semanal, mensal]
+          default: semanal
       required: [nome, email]
 
     User:
@@ -272,12 +284,24 @@ components:
           type: string
         status:
           type: string
+        frequencia:
+          type: string
+        cidadeId:
+          type: integer
+          nullable: true
+        cidadeNome:
+          type: string
+          nullable: true
         concursoId:
           type: integer
           nullable: true
+        concursoIds:
+          type: array
+          items:
+            type: integer
         createdAt:
           type: string
-      required: [id, nome, email, plano, status, createdAt]
+      required: [id, nome, email, plano, status, frequencia, concursoIds, createdAt]
 
     UserProfile:
       type: object
@@ -292,22 +316,34 @@ components:
           type: string
         status:
           type: string
-        concurso:
+        frequencia:
+          type: string
+        cidadeNome:
+          type: string
           nullable: true
-          type: object
-          properties:
-            id:
-              type: integer
-            nome:
-              type: string
-            cidade:
-              type: string
-          required: [id, nome, cidade]
+        concursos:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConcursoStatus"
+      required: [id, nome, email, plano, status, frequencia, concursos]
+
+    ConcursoStatus:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        cidade:
+          type: string
         convocado:
           type: boolean
         totalConvocados:
           type: integer
-      required: [id, nome, email, plano, status, convocado, totalConvocados]
+        ultimaConvocacao:
+          type: string
+          nullable: true
+      required: [id, nome, cidade, convocado, totalConvocados]
 
     UserList:
       type: object

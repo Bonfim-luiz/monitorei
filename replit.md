@@ -8,74 +8,93 @@ SaaS web application to monitor Brazilian Diário Oficial PDFs and notify users 
 
 - **Monorepo tool**: pnpm workspaces
 - **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
 - **Frontend**: React + Vite (artifacts/diario-monitor)
 - **API framework**: Express 5 (artifacts/api-server)
 - **Database**: PostgreSQL + Drizzle ORM
-- **PDF parsing**: pdf-parse (via CJS require in ESM context)
+- **PDF parsing**: pdf-parse v1 (CJS require via createRequire in ESM context)
 - **File upload**: multer
 - **Email**: nodemailer (Gmail SMTP)
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
+- **Validation**: Zod, drizzle-zod
+- **API codegen**: Orval (from OpenAPI spec in lib/api-spec/openapi.yaml)
 
-## Structure
+## App Structure
 
-```text
-artifacts-monorepo/
-├── artifacts/
-│   ├── api-server/         # Express API server
-│   │   ├── src/routes/users.ts        # User CRUD + profile by email
-│   │   ├── src/routes/pdf.ts          # PDF upload & status
-│   │   ├── src/routes/results.ts      # Name matching & email notifications (saves to convocacoes)
-│   │   ├── src/routes/concursos.ts    # List concursos with cidade
-│   │   ├── src/routes/cidades.ts      # List cidades
-│   │   ├── src/routes/convocacoes.ts  # List all convocações
-│   │   ├── src/lib/pdfStore.ts        # In-memory PDF state
-│   │   └── data/                      # Uploaded PDFs stored here
-│   └── diario-monitor/     # React frontend (3 tabs)
-│       ├── src/pages/Home.tsx          # Landing page + signup (plano selection)
-│       ├── src/pages/Profile.tsx       # User profile (simulated login via email dropdown)
-│       └── src/pages/Admin.tsx         # Admin panel (upload, verify, users, convocações)
-├── lib/
-│   ├── api-spec/openapi.yaml           # OpenAPI contract
-│   ├── api-client-react/               # Generated React Query hooks
-│   ├── api-zod/                        # Generated Zod schemas
-│   └── db/src/schema/
-│       ├── users.ts        # monitored_users table
-│       ├── concursos.ts    # concursos + cidades tables
-│       └── convocacoes.ts  # convocacoes table
-```
+3-tab navigation: **Monitorei** | **Meu Perfil** | **Administração**
+
+### Tab 1 — Monitorei (Landing)
+- Hero section + problem/solution blocks
+- 3 pricing cards (Basic R$19,90 / Pro R$29,90 / Premium R$49,90) — click to select
+- Signup form: Nome, Email, Cidade (dropdown), Concurso (dropdown), Frequência (Semanal/Mensal)
+
+### Tab 2 — Meu Perfil
+- Email dropdown for simulated login
+- Sub-tab **Perfil**: nome, email, plano, frequência, cidade
+- Sub-tab **Meu Monitoramento**: concurso selector (for Pro/Premium), convocação status, total convocados, última convocação date
+
+### Tab 3 — Administração
+- Sub-tab **Upload PDF**: cidade selector, PDF dropzone, "Verificar Nomes" (saves to convocacoes), results mini-table, notify button
+- Sub-tab **Usuários**: table with nome, email, plano, cidade, frequência, status, delete action
+- Sub-tab **Convocações**: table with nome, concurso, data
 
 ## Database Schema
 
-- **monitored_users**: id, nome, email, plano (basic/pro/premium), status, concurso_id, created_at
-- **cidades**: id, nome — seeded with Guarujá (id=1)
-- **concursos**: id, nome, cidade_id — seeded with "Guarujá Educação 2023" (id=1)
-- **convocacoes**: id, nome, concurso_id, data — populated by "Verificar Nomes" in admin
+| Table | Columns |
+|---|---|
+| `monitored_users` | id, nome, email, plano (basic/pro/premium), status, frequencia (semanal/mensal), cidade_id, concurso_id (primary), concurso_ids (JSON array), created_at |
+| `cidades` | id, nome |
+| `concursos` | id, nome, cidade_id |
+| `convocacoes` | id, nome, concurso_id, data |
+
+## Mock Data (seeded)
+
+- 1 cidade: Guarujá
+- 6 concursos: Educação 2023, Saúde 2024, Administrativo 2023, Tecnologia 2024, Operações 2024, Jurídico 2023
+- 10 users (mix of basic/pro/premium plans, various concurso assignments)
+- 23 convocações across 5 concursos (Jurídico has zero intentionally)
 
 ## Plan System
 
-- **basic**: 1 concurso
-- **pro**: até 3 concursos
-- **premium**: ilimitado
-(No payment yet — fields only)
+| Plan | Concursos | Price |
+|---|---|---|
+| Basic | 1 | R$19,90/ano |
+| Pro | até 3 | R$29,90/ano |
+| Premium | ilimitados | R$49,90/ano |
 
-## Features
-
-1. **Landing Page + Signup** (Tab 1 — Monitorei): Users register with nome, email, plano; assigned to concurso_id=1 by default
-2. **Profile Page** (Tab 2 — Meu Perfil): Simulated login by email dropdown; shows user info, concurso, convocação status
-3. **Admin Panel** (Tab 3 — Administração): Upload PDF, verify names (saves found names to convocacoes table), send email notifications, manage users, view convocações table
+(No payment integration yet — fields only)
 
 ## Environment Variables
 
-- `DATABASE_URL` - PostgreSQL connection string (auto-provisioned by Replit)
-- `EMAIL_USER` - Gmail address used to send notifications
-- `EMAIL_PASS` - Gmail App Password (generate at Google Account > Security > App Passwords)
+- `DATABASE_URL` — PostgreSQL connection string (auto-provisioned by Replit)
+- `EMAIL_USER` — Gmail address for sending notifications
+- `EMAIL_PASS` — Gmail App Password (Google Account > Security > App Passwords)
 
 ## Running Codegen
 
 After modifying `lib/api-spec/openapi.yaml`:
 ```
 pnpm --filter @workspace/api-spec run codegen
+```
+
+## File Layout
+
+```
+artifacts/
+  api-server/src/routes/
+    users.ts         # CRUD + profile by email (multi-concurso)
+    pdf.ts           # Upload & status
+    results.ts       # Name matching + save to convocacoes
+    concursos.ts     # List concursos with cidade
+    cidades.ts       # List cidades
+    convocacoes.ts   # List all convocações
+  diario-monitor/src/pages/
+    Home.tsx         # Marketing landing + pricing + signup form
+    Profile.tsx      # Profile with Perfil/Monitoramento sub-tabs
+    Admin.tsx        # Admin with Upload/Usuários/Convocações sub-tabs
+lib/
+  api-spec/openapi.yaml          # API contract
+  api-client-react/              # Generated React Query hooks
+  db/src/schema/
+    users.ts         # monitored_users table
+    concursos.ts     # concursos + cidades tables
+    convocacoes.ts   # convocacoes table
 ```

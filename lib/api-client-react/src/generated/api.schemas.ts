@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Monitorei API
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.3.0
  */
 export interface HealthStatus {
   status: string;
@@ -18,11 +18,22 @@ export const RegisterUserRequestPlano = {
   premium: "premium",
 } as const;
 
+export type RegisterUserRequestFrequencia =
+  (typeof RegisterUserRequestFrequencia)[keyof typeof RegisterUserRequestFrequencia];
+
+export const RegisterUserRequestFrequencia = {
+  semanal: "semanal",
+  mensal: "mensal",
+} as const;
+
 export interface RegisterUserRequest {
   /** @minLength 2 */
   nome: string;
   email: string;
   plano?: RegisterUserRequestPlano;
+  cidadeId?: number;
+  concursoIds?: number[];
+  frequencia?: RegisterUserRequestFrequencia;
 }
 
 export interface User {
@@ -31,15 +42,22 @@ export interface User {
   email: string;
   plano: string;
   status: string;
+  frequencia: string;
+  cidadeId?: number | null;
+  cidadeNome?: string | null;
   concursoId?: number | null;
+  concursoIds: number[];
   createdAt: string;
 }
 
-export type UserProfileConcurso = {
+export interface ConcursoStatus {
   id: number;
   nome: string;
   cidade: string;
-} | null;
+  convocado: boolean;
+  totalConvocados: number;
+  ultimaConvocacao?: string | null;
+}
 
 export interface UserProfile {
   id: number;
@@ -47,9 +65,9 @@ export interface UserProfile {
   email: string;
   plano: string;
   status: string;
-  concurso?: UserProfileConcurso;
-  convocado: boolean;
-  totalConvocados: number;
+  frequencia: string;
+  cidadeNome?: string | null;
+  concursos: ConcursoStatus[];
 }
 
 export interface UserList {

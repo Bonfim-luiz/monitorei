@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Monitorei API
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.3.0
  */
 import * as zod from "zod";
 
@@ -17,6 +17,9 @@ export const HealthCheckResponse = zod.object({
 export const registerUserBodyNomeMin = 2;
 
 export const registerUserBodyPlanoDefault = `basic`;
+export const registerUserBodyCidadeIdDefault = 1;
+export const registerUserBodyConcursoIdsDefault = [1];
+export const registerUserBodyFrequenciaDefault = `semanal`;
 
 export const RegisterUserBody = zod.object({
   nome: zod.string().min(registerUserBodyNomeMin),
@@ -24,6 +27,13 @@ export const RegisterUserBody = zod.object({
   plano: zod
     .enum(["basic", "pro", "premium"])
     .default(registerUserBodyPlanoDefault),
+  cidadeId: zod.number().default(registerUserBodyCidadeIdDefault),
+  concursoIds: zod
+    .array(zod.number())
+    .default(registerUserBodyConcursoIdsDefault),
+  frequencia: zod
+    .enum(["semanal", "mensal"])
+    .default(registerUserBodyFrequenciaDefault),
 });
 
 export const ListUsersResponse = zod.object({
@@ -34,7 +44,11 @@ export const ListUsersResponse = zod.object({
       email: zod.string(),
       plano: zod.string(),
       status: zod.string(),
+      frequencia: zod.string(),
+      cidadeId: zod.number().nullish(),
+      cidadeNome: zod.string().nullish(),
       concursoId: zod.number().nullish(),
+      concursoIds: zod.array(zod.number()),
       createdAt: zod.string(),
     }),
   ),
@@ -50,15 +64,18 @@ export const GetUserByEmailResponse = zod.object({
   email: zod.string(),
   plano: zod.string(),
   status: zod.string(),
-  concurso: zod
-    .object({
+  frequencia: zod.string(),
+  cidadeNome: zod.string().nullish(),
+  concursos: zod.array(
+    zod.object({
       id: zod.number(),
       nome: zod.string(),
       cidade: zod.string(),
-    })
-    .nullish(),
-  convocado: zod.boolean(),
-  totalConvocados: zod.number(),
+      convocado: zod.boolean(),
+      totalConvocados: zod.number(),
+      ultimaConvocacao: zod.string().nullish(),
+    }),
+  ),
 });
 
 export const DeleteUserParams = zod.object({

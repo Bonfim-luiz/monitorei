@@ -6,10 +6,11 @@
  * OpenAPI spec version: 0.3.0
  */
 
-export interface Convocacao {
+export interface ConcursoStatus {
   id: number;
   nome: string;
-  concursoId: number;
-  concursoNome: string;
-  data: string;
+  cidade: string;
+  convocado: boolean;
+  totalConvocados: number;
+  ultimaConvocacao?: string | null;
 }
