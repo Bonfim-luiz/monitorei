@@ -1,7 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "pnpm --filter @workspace/diario-monitor run build",
-  "outputDirectory": "artifacts/diario-monitor/dist",
+  "outputDirectory": "artifacts/diario-monitor/.next",
   "installCommand": "pnpm install",
-  "framework": "vite"
+  "framework": "nextjs",
+  "ignoreCommand": "exit 0"
 }
