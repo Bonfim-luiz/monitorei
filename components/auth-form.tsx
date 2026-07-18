@@ -31,7 +31,7 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
     setLoading(false)
 
     if (error) {
-      setError(error.message ?? 'Something went wrong')
+      setError(error.message ?? 'Algo deu errado. Tente novamente.')
       return
     }
 
@@ -44,19 +44,19 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
       <Card className="w-full max-w-sm p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            {isSignUp ? 'Create an account' : 'Welcome back'}
+            {isSignUp ? 'Criar conta' : 'Bem-vindo de volta'}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {isSignUp
-              ? 'Sign up to get started'
-              : 'Sign in to your account to continue'}
+              ? 'Cadastre-se para começar a monitorar concursos'
+              : 'Entre na sua conta para continuar'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {isSignUp && (
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Nome</Label>
               <Input
                 id="name"
                 value={name}
